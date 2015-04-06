@@ -6,7 +6,10 @@
 
     'description': """
         This module provides an interface to echanges files with banks. It's curently a beta version.
-		
+		This module isbased on the library ebicsPy. It maps Odoo with the ebicspy API.
+
+		https://code.launchpad.net/~aurelien-dumaine/+junk/ebicspy
+
 		This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
     """,
 
