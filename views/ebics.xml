@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <!-- window action -->
+        <!--
+            The following tag is an action definition for a "window action",
+            that is an action opening a view or a set of views
+        -->
+        <record model="ir.actions.act_window" id="ebics_config_list_action">
+            <field name="name">EBICS Configuration</field>
+            <field name="res_model">l10n_fr_ebics.ebics_config</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">Create the first EBICS configuration
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="ebics_menu" name="EBICS"
+                  parent="account.account_account_menu"/>
+
+        <menuitem id="ebics_config_menu" name="Configurations" parent="ebics_menu"
+                  action="ebics_config_list_action"/>
+
+    </data>
+</openerp>
+
+
