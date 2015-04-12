@@ -5,6 +5,7 @@ from openerp import models, fields, api
 class ebics_config(models.Model):
     _name = 'l10n_fr_ebics.ebics_config'
     name = fields.Char()
+
     bank_host = fields.Char()
     bank_port = fields.Integer()
     bank_root = fields.Text()

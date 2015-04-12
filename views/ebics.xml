@@ -1,24 +1,121 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
-        <!-- window action -->
-        <!--
-            The following tag is an action definition for a "window action",
-            that is an action opening a view or a set of views
-        -->
+        <record model="ir.ui.view" id="ebics_config_tree_view">
+            <field name="name">ebics.config.tree</field>
+            <field name="model">l10n_fr_ebics.ebics_config</field>
+            <field name="arch" type="xml">
+                <tree string="EBICS Config Tree">
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+
+        <record model="ir.ui.view" id="ebics_config_form_view">
+            <field name="name">ebics.config.form</field>
+            <field name="model">l10n_fr_ebics.ebics_config</field>
+            <field name="arch" type="xml">
+                <form string="EBICS Config Form">
+                    <field name="name" placeholder="Configuration Name"/>
+					<notebook>
+						<page string="General">
+
+							<group string="Ebics protocol parameters">
+								<field name="ebics_profile"/>
+								<field name="ebics_country"/>
+								<field name="ebics_version"/>
+								<field name="ebics_revision"/>
+								<field name="ebics_specification"/>
+							</group>
+
+							<group string="Initiation letters">
+								<field name="ini_letter"/>
+								<field name="hia_letter"/>
+							</group>
+
+							<group string="Bank parameters">
+								<field name="bank_host"/>
+								<field name="bank_port"/>
+								<field name="bank_root"/>
+								<field name="bank_host_id"/>
+							</group>
+
+							<group string="Partner parameters">
+								<field name="partner_id"/>
+								<field name="user_id"/>
+							</group>
+						</page>
+						<page string="CA">
+							<group string="CA keys">
+								<field name="ca_key_pem"/>
+								<field name="ca_cert_crt"/>
+								<field name="ca_serial_srl"/>
+							</group>
+						</page>
+						<page string="Bank keys">
+							<group string="Bank auth key">
+								<field name="bank_auth_key_certificate"/>
+								<field name="bank_auth_key_certificate_hash"/>
+								<field name="bank_auth_key_modulus"/>
+								<field name="bank_auth_key_public_exponent"/>
+								<field name="bank_auth_key_version"/>
+							</group>
+
+							<group string="Bank encrypt key">
+								<field name="bank_encrypt_key_certificate"/>
+								<field name="bank_encrypt_key_certificate_hash"/>
+								<field name="bank_encrypt_key_modulus"/>
+								<field name="bank_encrypt_key_public_exponent"/>
+								<field name="bank_encrypt_key_version"/>
+							</group>
+						</page>
+						<page string="Partner keys">
+							<group string="Partner auth key">
+								<field name="partner_auth_key_certificate"/>
+								<field name="partner_auth_key_certificate_hash"/>
+								<field name="partner_auth_key_modulus"/>
+								<field name="partner_auth_key_public_exponent"/>
+								<field name="partner_auth_key_private_exponent"/>
+								<field name="partner_auth_key_version"/>
+							</group>
+
+							<group string="Partner encrypt key">
+								<field name="partner_encrypt_key_certificate"/>
+								<field name="partner_encrypt_key_certificate_hash"/>
+								<field name="partner_encrypt_key_modulus"/>
+								<field name="partner_encrypt_key_public_exponent"/>
+								<field name="partner_encrypt_key_private_exponent"/>
+								<field name="partner_encrypt_key_version"/>
+							</group>
+
+							<group string="Partner sign key">
+								<field name="partner_sign_key_certificate"/>
+								<field name="partner_sign_key_certificate_hash"/>
+								<field name="partner_sign_key_modulus"/>
+								<field name="partner_sign_key_public_exponent"/>
+								<field name="partner_sign_key_private_exponent"/>
+								<field name="partner_sign_key_version"/>
+							</group>
+						</page>
+						<page string="Logs">
+							<field name="ebics_log_ids"/>
+						</page>
+					</notebook>
+                </form>
+            </field>
+        </record>
+
         <record model="ir.actions.act_window" id="ebics_config_list_action">
             <field name="name">EBICS Configuration</field>
             <field name="res_model">l10n_fr_ebics.ebics_config</field>
             <field name="view_type">form</field>
-            <field name="view_mode">tree,form</field>
-            <field name="help" type="html">
-                <p class="oe_view_nocontent_create">Create the first EBICS configuration
-                </p>
-            </field>
-        </record>
+            <field name="view_mode">form,tree</field>
+		</record>
+
 
         <menuitem id="ebics_menu" name="EBICS"
-                  parent="account.account_account_menu"/>
+                  parent="account.menu_finance"/>
 
         <menuitem id="ebics_config_menu" name="Configurations" parent="ebics_menu"
                   action="ebics_config_list_action"/>
