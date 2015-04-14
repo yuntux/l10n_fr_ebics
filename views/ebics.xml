@@ -18,6 +18,7 @@
             <field name="arch" type="xml">
                 <form string="EBICS Config Form">
                     <field name="name" placeholder="Configuration Name"/>
+					<button string="Get file" name="get_file" type="object"/>
 					<notebook>
 						<page string="General">
 
