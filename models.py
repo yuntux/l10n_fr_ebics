@@ -32,40 +32,46 @@ class ebics_config(models.Model):
 
     def partner_keys_already_exists(self, partnerName):
         res = False
-        if self.partner_encrypt_key_modulus != False:
+        if self.partner_encrypt_key_public_exponent != False:
             res = True
         return res
 
     def bank_keys_already_exists(self, bankName, auth_version):
         res = False
-        if self.bank_encrypt_key_modulus != False:
+        if self.bank_encrypt_key_public_exponent != False:
             res = True
         return res
 
     def getBankAuthKeyHash(self):
-        return self.bank_auth_key_certificate_hash
+        return str(self.bank_auth_key_certificate_hash)
 
     def getBankEncryptKeyHash(self):
-        return self.bank_encrypt_key_certificate_hash
+        return str(self.bank_encrypt_key_certificate_hash)
 
     def saveLetter(self, letter, letterType, partnerName, bankName):
-        self.write({letterType+"_letter" : letter.encode('base64')})
+        if letterType == "INI_letter_A005":
+            letterType = "ini_letter_sign"
+        if letterType == "HIA_letter_E002":
+            letterType = "hia_letter_encrypt"
+        if letterType == "HIA_letter_X002":
+            letterType = "hia_letter_auth"
+        self.write({letterType : letter.encode('base64')})
 
     def loadCertificate(self, certificateType, partnerName):
         # TODO : check if the return value is correct, text field may no be splited in lines
         targetField = 'partner_'+certificateType+'_key_certificate'
-        f = self.read([targetField])[0][targetField]
+        f = str(self.read([targetField])[0][targetField])
         certificate = ""
         for line in f :
             certificate += line.strip()
-        certificate = certificate.replace('-----BEGIN CERTIFICATE-----', '').replace('-----END CERTIFICATE-----', '')
+        certificate = str(certificate).replace('-----BEGINCERTIFICATE-----', '').replace('-----ENDCERTIFICATE-----', '')
         return certificate
 
     def getPartnerKey(self, partnerName, keyType, keyLevel):
         # TODO : while the pertenr key is stored in PEM, modulus is empty
         targetField = 'partner_'+keyType+'_key_'+keyLevel+'_exponent'
         res = self.read([targetField])[0][targetField]
-        return res
+        return str(res)
 
     def getBankKeyComponent(self, bankName, keyComponent, keyVersion):
         if keyVersion == "E002" :
@@ -74,7 +80,10 @@ class ebics_config(models.Model):
             keyType = "auth"
         targetField = 'bank_'+keyType+'_key_'+keyComponent
         res = self.read([targetField])[0][targetField]
-        return res
+        print "777777777777777777777777777777777777777777777777777"
+        print res
+        print "777777777777777777777777777777777777777777777777777"
+        return long(res)
 
     def saveCertificate(self, certificateType, partnerName, content, cert_req):
         self.write({"partner_"+certificateType+"_key_certificate" : content})
@@ -93,30 +102,28 @@ class ebics_config(models.Model):
     ###################################################
     ############### ODOO OBJECT FUNCTIONS #############
     ###################################################
-    @api.one
     def init_connexion(self):
         print "%%%%%%%%%%%%%%%%%%%% init connexion %%%%%%%%%%%%%%%%%%%%"
         #logger = self
         #TODO : remane Logger.write en Logger.log in ebicsPy and replace ScreenLogger by self
         logger = ScreenLogger()
         storage = self
-        bank = Bank(storage, 'testBankOdoo', self.bank_host, self.bank_port, self.bank_root, self.bank_host_id)
-        partner = Partner(storage, 'testPartnerOdoo', self.partner_id, self.user_id, logger)
+        bank = Bank(storage, str('testBankOdoo'), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
+        partner = Partner(storage, str('testPartnerOdoo'), str(self.partner_id), str(self.user_id), logger)
         partner.init(bank)
-        return partner, bank
+        return partner,bank
 
     @api.one
     def send_file(self):
         print "%%%%%%%%%%%%%%%%%%%% send file %%%%%%%%%%%%%%%%%%%%"
-        partner, bank = self.init_connexion()
+        partner,bank = self.init_connexion()
         #fileUpload_from_fileSystem(partner, bank, "/home/yuntux/HelloWorld","pain.xxx.cfonb160.dct", "t")  
 
     @api.one
     def get_file(self):
         print "%%%%%%%%%%%%%%%%%%%% get file %%%%%%%%%%%%%%%%%%%%"
-#        self.saveLetter("test avec write", "ini", "a", "b")
-        partner, bank = self.init_connexion()
-        #fileDownload_to_fileSystem(partner, bank, "/home/yuntux/")
+        partner,bank = self.init_connexion()
+        fileDownload_to_fileSystem(partner, bank, "/home/yuntux/")
 
     _name = 'l10n_fr_ebics.ebics_config'
     name = fields.Char()
@@ -172,8 +179,9 @@ class ebics_config(models.Model):
     ca_cert_crt = fields.Text()
     ca_serial_srl = fields.Text()
 
-    ini_letter = fields.Binary()
-    hia_letter = fields.Binary()
+    ini_letter_sign = fields.Binary()
+    hia_letter_encrypt = fields.Binary()
+    hia_letter_auth = fields.Binary()
 
     ebics_log_ids = fields.One2many('l10n_fr_ebics.ebics_log', 'ebics_config_id')
 

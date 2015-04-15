@@ -31,8 +31,9 @@
 							</group>
 
 							<group string="Initiation letters">
-								<field name="ini_letter"/>
-								<field name="hia_letter"/>
+								<field name="ini_letter_sign"/>
+								<field name="hia_letter_encrypt"/>
+								<field name="hia_letter_auth"/>
 							</group>
 
 							<group string="Bank parameters">
