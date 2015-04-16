@@ -2,6 +2,7 @@
 
 from openerp import models, fields, api
 from ebicspy import *
+import binascii
 
 
 class ScreenLogger :
@@ -21,15 +22,19 @@ class ebics_config(models.Model):
     ################# STORAGE API STUB ################
     ###################################################
     def saveBankKeys(self, bankName, auth_certificate, auth_modulus, auth_exponent, auth_version, encrypt_certificate, encrypt_modulus, encrypt_exponent, encrypt_version):
+        print "888888888888888888888888888888888888888888"
+        print auth_modulus
         self.write({'bank_auth_key_certificate': auth_certificate,
-                    'bank_auth_key_modulus': auth_modulus,
-                    'bank_auth_key_public_exponent': auth_exponent,
+                    'bank_auth_key_modulus': str(long(binascii.hexlify(auth_modulus), 16)),
+                    'bank_auth_key_public_exponent': str(int(auth_exponent, 16)),
                     'bank_auth_key_version': auth_version,
                     'bank_encrypt_key_certificate': encrypt_certificate,
-                    'bank_encrypt_key_modulus': encrypt_modulus,
-                    'bank_encrypt_key_public_exponent': encrypt_exponent,
+                    'bank_encrypt_key_modulus': str(long(binascii.hexlify(encrypt_modulus), 16)),
+                    'bank_encrypt_key_public_exponent': str(int(encrypt_exponent, 16)),
                     'bank_encrypt_key_version': encrypt_version})
-
+        print self.bank_auth_key_modulus
+        print "888888888888888888888888888888888888888888"
+    
     def partner_keys_already_exists(self, partnerName):
         res = False
         if self.partner_encrypt_key_public_exponent != False:
@@ -80,9 +85,6 @@ class ebics_config(models.Model):
             keyType = "auth"
         targetField = 'bank_'+keyType+'_key_'+keyComponent
         res = self.read([targetField])[0][targetField]
-        print "777777777777777777777777777777777777777777777777777"
-        print res
-        print "777777777777777777777777777777777777777777777777777"
         return long(res)
 
     def saveCertificate(self, certificateType, partnerName, content, cert_req):
@@ -108,8 +110,8 @@ class ebics_config(models.Model):
         #TODO : remane Logger.write en Logger.log in ebicsPy and replace ScreenLogger by self
         logger = ScreenLogger()
         storage = self
-        bank = Bank(storage, str('testBankOdoo'), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
-        partner = Partner(storage, str('testPartnerOdoo'), str(self.partner_id), str(self.user_id), logger)
+        bank = Bank(storage, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
+        partner = Partner(storage, str(self.company_id.name), str(self.partner_id), str(self.user_id), logger)
         partner.init(bank)
         return partner,bank
 
@@ -127,14 +129,16 @@ class ebics_config(models.Model):
 
     _name = 'l10n_fr_ebics.ebics_config'
     name = fields.Char()
+    company_id = fields.Many2one("res.company", string="Partner company", required=True)
 
-    bank_host = fields.Char()
-    bank_port = fields.Integer()
-    bank_root = fields.Text()
-    bank_host_id = fields.Char()
+    bank_name = fields.Char(required=True)
+    bank_host = fields.Char(required=True)
+    bank_port = fields.Integer(required=True)
+    bank_root = fields.Text(required=True)
+    bank_host_id = fields.Char(required=True)
      
-    partner_id = fields.Char()
-    user_id = fields.Char() #should be a many2one
+    partner_id = fields.Char(required=True)
+    user_id = fields.Char(required=True) #should be a many2one
 
     ebics_profile = fields.Selection([('t', 'EBICS T'), ('ts', 'EBICS TS')])
     ebics_country = fields.Selection([('fr', 'France')])
@@ -143,13 +147,13 @@ class ebics_config(models.Model):
     ebics_specification = fields.Selection([('25', 'v2.5')])
 
     bank_auth_key_certificate = fields.Text()
-    bank_auth_key_certificate_hash = fields.Char() #should'nt be stored, just checked and forget after HPB
+    bank_auth_key_certificate_hash = fields.Char(required=True) #should'nt be stored, just checked and forget after HPB
     bank_auth_key_modulus = fields.Text()
     bank_auth_key_public_exponent = fields.Text()
     bank_auth_key_version = fields.Char()
 
     bank_encrypt_key_certificate = fields.Text()
-    bank_encrypt_key_certificate_hash = fields.Char() #should'nt be stored, just checked and forget after HPB
+    bank_encrypt_key_certificate_hash = fields.Char(required=True) #should'nt be stored, just checked and forget after HPB
     bank_encrypt_key_modulus = fields.Text()
     bank_encrypt_key_public_exponent = fields.Text()
     bank_encrypt_key_version = fields.Char()
