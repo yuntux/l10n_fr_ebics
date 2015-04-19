@@ -17,26 +17,8 @@ class ebics_config(models.Model):
     ###################################################
     ################# STORAGE API STUB ################
     ###################################################
-    def saveBankKeys(self, bankName, auth_certificate, auth_modulus, auth_exponent, auth_version, encrypt_certificate, encrypt_modulus, encrypt_exponent, encrypt_version):
-        self.write({'bank_auth_key_certificate': auth_certificate,
-                    'bank_auth_key_modulus': str(long(binascii.hexlify(auth_modulus), 16)),
-                    'bank_auth_key_public_exponent': str(int(auth_exponent, 16)),
-                    'bank_auth_key_version': auth_version,
-                    'bank_encrypt_key_certificate': encrypt_certificate,
-                    'bank_encrypt_key_modulus': str(long(binascii.hexlify(encrypt_modulus), 16)),
-                    'bank_encrypt_key_public_exponent': str(int(encrypt_exponent, 16)),
-                    'bank_encrypt_key_version': encrypt_version})
-    
-    def partner_keys_already_exists(self, partnerName):
-        res = False
-        if self.partner_encrypt_key_public_exponent != False:
-            res = True
-        return res
-
-    def bank_keys_already_exists(self, bankName, auth_version):
-        res = False
-        if self.bank_encrypt_key_public_exponent != False:
-            res = True
+    def getStatus(self, partnerName, bankName):
+        res = self.read(["status"])[0]["status"]
         return res
 
     def getBankAuthKeyHash(self):
@@ -54,21 +36,35 @@ class ebics_config(models.Model):
             letterType = "hia_letter_auth"
         self.write({letterType : letter.encode('base64')})
 
-    def loadCertificate(self, certificateType, partnerName):
-        # TODO : check if the return value is correct, text field may no be splited in lines
-        targetField = 'partner_'+certificateType+'_key_certificate'
-        f = str(self.read([targetField])[0][targetField])
-        certificate = ""
-        for line in f :
-            certificate += line.strip()
-        certificate = str(certificate).replace('-----BEGINCERTIFICATE-----', '').replace('-----ENDCERTIFICATE-----', '')
-        return certificate
 
-    def getPartnerKey(self, partnerName, keyType, keyLevel):
-        # TODO : while the pertenr key is stored in PEM, modulus is empty
-        targetField = 'partner_'+keyType+'_key_'+keyLevel+'_exponent'
+    def saveBankKeys(self, bankName, auth_certificate, auth_modulus, auth_exponent, auth_version, encrypt_certificate, encrypt_modulus, encrypt_exponent, encrypt_version):
+        self.write({'bank_auth_key_certificate': auth_certificate,
+                    'bank_auth_key_modulus': str(long(binascii.hexlify(auth_modulus), 16)),
+                    'bank_auth_key_public_exponent': str(int(auth_exponent, 16)),
+                    'bank_auth_key_version': auth_version,
+                    'bank_encrypt_key_certificate': encrypt_certificate,
+                    'bank_encrypt_key_modulus': str(long(binascii.hexlify(encrypt_modulus), 16)),
+                    'bank_encrypt_key_public_exponent': str(int(encrypt_exponent, 16)),
+                    'bank_encrypt_key_version': encrypt_version})
+ 
+    def saveKey(self, keyType, owner, modulus, private_exponent, public_exponent) :
+        #TODO : found the keyVersion with an other method
+        if keyType == "encrypt" :
+            keyVersion = "E002"
+        elif keyType == "auth" :
+            keyVersion = "X002"
+        elif keyType == "sign":
+            keyVersion = "A005"
+
+        self.write({'partner_'+keyType+'_key_modulus': str(modulus),
+                    'partner_'+keyType+'_key_public_exponent': str(public_exponent),
+                    'partner_'+keyType+'_key_private_exponent': str(private_exponent),
+                    'partner_'+keyType+'_key_version': keyVersion})
+    
+    def getPartnerKeyComponent(self, partnerName, keyComponent, keyType):
+        targetField = 'partner_'+keyType+'_key_'+keyComponent
         res = self.read([targetField])[0][targetField]
-        return str(res)
+        return long(res)
 
     def getBankKeyComponent(self, bankName, keyComponent, keyVersion):
         if keyVersion == "E002" :
@@ -84,10 +80,16 @@ class ebics_config(models.Model):
         #TODO : is it really usefull to keep the certification request .csr ?
         #self.write({"partner_"+certificateType+"_key_certificate_CASignRequest" : cert_req})
 
-    def saveKey(self, keyType, owner, keyLevel, key) :
-        # TODO : while the pertenr key is stored in PEM, modulus is empty
-        self.write({"partner_"+keyType+"_key_"+keyLevel+"_exponent" : key})
-
+    def loadCertificate(self, certificateType, partnerName):
+        # TODO : check if the return value is correct, text field may no be splited in lines
+        targetField = 'partner_'+certificateType+'_key_certificate'
+        f = str(self.read([targetField])[0][targetField])
+        certificate = ""
+        for line in f :
+            certificate += line.strip()
+        certificate = str(certificate).replace('-----BEGINCERTIFICATE-----', '').replace('-----ENDCERTIFICATE-----', '')
+        return certificate
+                   
     def saveCA(self, owner, ca_key, ca_cert, ca_serial):
         #TODO : was is cert (4th argument ?)
         #In the final version, the three partner keys (expet sign for TS profils) will be sign with the save CA
@@ -101,6 +103,8 @@ class ebics_config(models.Model):
         partner = Partner(self, str(self.company_id.name), str(self.partner_id), str(self.user_id), self)
         partner.loadPartnerKeys()
         partner.loadBankKeys(bank, str(self.bank_encrypt_key_version), str(self.bank_encrypt_key_version))
+        print "========== PARTNER KEYS AND CERTIFICATES LOADED =========="
+        print "========== BANK KEYS AND CERTIFICATES LOADED =========="
         return partner,bank
 
     @api.one
@@ -114,17 +118,18 @@ class ebics_config(models.Model):
         fileDownload_to_fileSystem(partner, bank, "/home/yuntux/")
 
     @api.one
-    def send_partner_heys(self):
-        bank = Bank(storage, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
-        partner = Partner(storage, str(self.company_id.name), str(self.partner_id), str(self.user_id), logger)
+    def send_partner_keys(self):
+        bank = Bank(self, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
+        partner = Partner(self, str(self.company_id.name), str(self.partner_id), str(self.user_id), self)
         partner.createPartnerKeys()
-        print "========== CREATION DES CLES TERMINNEE =========="
+        print "========== PARTNER KEY GENERATION OK =========="
         partner.handle_ini_exchange(bank)
-        print "========== ENVOI MESSAGE INI TERMINE =========="
-        print "========== IL FAUT MAINTENANT ENVOYER LE MESSAGE HIA =========="
+        print "========== INI MESSAGE SENT =========="
+        print "========== WE HAVE NOW TO SEND THE HIA MESSAGE =========="
         partner.handle_hia_exchange(bank)
-        print "========== ENVOI MESSAGE HIA TERMINE =========="
-        print "===>>> VOUS DEVEZ ENVOYER VOS LETTRES D'INITIALISATION AVANT DE RECUPERER LES CLES DE LA BANQUE"
+        print "========== HIA MESSAGE SENT =========="
+        print "===>>> YOU HAVE TO SEND INITIATION LETTERS TO YOUR BANK BEFORE DOWNLOADING THE BANK KEYS"
+        self.status = "bank_init"
 
     @api.one
     def get_bank_keys(self):
@@ -133,7 +138,8 @@ class ebics_config(models.Model):
         partner.loadPartnerKeys()
         bank_auth_key_hash = partner.storageService.getBankAuthKeyHash()
         bank_encrypt_key_hash = partner.storageService.getBankEncryptKeyHash()
-        hpb_exchange(self, bank, bank_auth_key_hash, bank_encrypt_key_hash)
+        hpb_exchange(partner, bank, bank_auth_key_hash, bank_encrypt_key_hash)
+        self.status = "ready"
 
     _name = 'l10n_fr_ebics.ebics_config'
     name = fields.Char()

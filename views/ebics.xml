@@ -22,7 +22,7 @@
                     <field name="status"/>
 
 					<button string="Send partner keys" name="send_partner_keys" type="object" attrs="{'invisible': [('status','!=', 'partner_init')]}"/>
-					<button string="Get bank kyes" name="get_bank_keys" type="object" attrs="{'invisible': [('status','!=', 'bank_init')]}"/>
+					<button string="Get bank keys" name="get_bank_keys" type="object" attrs="{'invisible': [('status','!=', 'bank_init')]}"/>
 					<button string="Get file" name="get_file" type="object" attrs="{'invisible': [('status','!=', 'ready')]}"/>
 					<button string="Send file" name="send_file" type="object" attrs="{'invisible': [('status','!=', 'ready')]}"/>
 
