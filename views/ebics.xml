@@ -19,7 +19,13 @@
                 <form string="EBICS Config Form">
                     <field name="name" placeholder="Configuration Name"/>
                     <field name="company_id"/>
-					<button string="Get file" name="get_file" type="object"/>
+                    <field name="status"/>
+
+					<button string="Send partner keys" name="send_partner_keys" type="object" attrs="{'invisible': [('status','!=', 'partner_init')]}"/>
+					<button string="Get bank kyes" name="get_bank_keys" type="object" attrs="{'invisible': [('status','!=', 'bank_init')]}"/>
+					<button string="Get file" name="get_file" type="object" attrs="{'invisible': [('status','!=', 'ready')]}"/>
+					<button string="Send file" name="send_file" type="object" attrs="{'invisible': [('status','!=', 'ready')]}"/>
+
 					<notebook>
 						<page string="General">
 
@@ -106,6 +112,7 @@
 							<field name="ebics_log_ids"/>
 						</page>
 					</notebook>
+					<field name="id"/>
                 </form>
             </field>
         </record>

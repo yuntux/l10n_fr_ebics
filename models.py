@@ -5,25 +5,19 @@ from ebicspy import *
 import binascii
 
 
-class ScreenLogger :
-    def write(self, title, string):
-        print title, string
-
-
 class ebics_config(models.Model):
 
     ###################################################
     ################# LOGGER API STUB #################
     ###################################################
-#    def write(self, title, string):
-#        print title, string
+    def logMessage(self, title, string):
+        print title, string
+        self.env['l10n_fr_ebics.ebics_log'].create({'name':title, 'content':string, 'ebics_config_id':self.id})
 
     ###################################################
     ################# STORAGE API STUB ################
     ###################################################
     def saveBankKeys(self, bankName, auth_certificate, auth_modulus, auth_exponent, auth_version, encrypt_certificate, encrypt_modulus, encrypt_exponent, encrypt_version):
-        print "888888888888888888888888888888888888888888"
-        print auth_modulus
         self.write({'bank_auth_key_certificate': auth_certificate,
                     'bank_auth_key_modulus': str(long(binascii.hexlify(auth_modulus), 16)),
                     'bank_auth_key_public_exponent': str(int(auth_exponent, 16)),
@@ -32,8 +26,6 @@ class ebics_config(models.Model):
                     'bank_encrypt_key_modulus': str(long(binascii.hexlify(encrypt_modulus), 16)),
                     'bank_encrypt_key_public_exponent': str(int(encrypt_exponent, 16)),
                     'bank_encrypt_key_version': encrypt_version})
-        print self.bank_auth_key_modulus
-        print "888888888888888888888888888888888888888888"
     
     def partner_keys_already_exists(self, partnerName):
         res = False
@@ -96,7 +88,7 @@ class ebics_config(models.Model):
         # TODO : while the pertenr key is stored in PEM, modulus is empty
         self.write({"partner_"+keyType+"_key_"+keyLevel+"_exponent" : key})
 
-    def saveCA(self, function, owner, cert, ca_key, ca_cert, ca_serial):
+    def saveCA(self, owner, ca_key, ca_cert, ca_serial):
         #TODO : was is cert (4th argument ?)
         #In the final version, the three partner keys (expet sign for TS profils) will be sign with the save CA
         self.write({"ca_key_pem" : ca_key, "ca_cert_crt": ca_cert, "ca_serial_srl" : ca_serial})
@@ -105,30 +97,49 @@ class ebics_config(models.Model):
     ############### ODOO OBJECT FUNCTIONS #############
     ###################################################
     def init_connexion(self):
-        print "%%%%%%%%%%%%%%%%%%%% init connexion %%%%%%%%%%%%%%%%%%%%"
-        #logger = self
-        #TODO : remane Logger.write en Logger.log in ebicsPy and replace ScreenLogger by self
-        logger = ScreenLogger()
-        storage = self
-        bank = Bank(storage, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
-        partner = Partner(storage, str(self.company_id.name), str(self.partner_id), str(self.user_id), logger)
-        partner.init(bank)
+        bank = Bank(self, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
+        partner = Partner(self, str(self.company_id.name), str(self.partner_id), str(self.user_id), self)
+        partner.loadPartnerKeys()
+        partner.loadBankKeys(bank, str(self.bank_encrypt_key_version), str(self.bank_encrypt_key_version))
         return partner,bank
 
     @api.one
     def send_file(self):
-        print "%%%%%%%%%%%%%%%%%%%% send file %%%%%%%%%%%%%%%%%%%%"
         partner,bank = self.init_connexion()
         #fileUpload_from_fileSystem(partner, bank, "/home/yuntux/HelloWorld","pain.xxx.cfonb160.dct", "t")  
 
     @api.one
     def get_file(self):
-        print "%%%%%%%%%%%%%%%%%%%% get file %%%%%%%%%%%%%%%%%%%%"
         partner,bank = self.init_connexion()
         fileDownload_to_fileSystem(partner, bank, "/home/yuntux/")
 
+    @api.one
+    def send_partner_heys(self):
+        bank = Bank(storage, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
+        partner = Partner(storage, str(self.company_id.name), str(self.partner_id), str(self.user_id), logger)
+        partner.createPartnerKeys()
+        print "========== CREATION DES CLES TERMINNEE =========="
+        partner.handle_ini_exchange(bank)
+        print "========== ENVOI MESSAGE INI TERMINE =========="
+        print "========== IL FAUT MAINTENANT ENVOYER LE MESSAGE HIA =========="
+        partner.handle_hia_exchange(bank)
+        print "========== ENVOI MESSAGE HIA TERMINE =========="
+        print "===>>> VOUS DEVEZ ENVOYER VOS LETTRES D'INITIALISATION AVANT DE RECUPERER LES CLES DE LA BANQUE"
+
+    @api.one
+    def get_bank_keys(self):
+        bank = Bank(self, str(self.bank_name), str(self.bank_host), str(self.bank_port), str(self.bank_root), str(self.bank_host_id))
+        partner = Partner(self, str(self.company_id.name), str(self.partner_id), str(self.user_id), self)
+        partner.loadPartnerKeys()
+        bank_auth_key_hash = partner.storageService.getBankAuthKeyHash()
+        bank_encrypt_key_hash = partner.storageService.getBankEncryptKeyHash()
+        hpb_exchange(self, bank, bank_auth_key_hash, bank_encrypt_key_hash)
+
     _name = 'l10n_fr_ebics.ebics_config'
     name = fields.Char()
+    status = fields.Selection([('partner_init','Partner init'),('bank_init', 'Bank init'),('ready', 'Ready'), ('suspended', 'Suspended')],
+                            required=True,
+                            default="partner_init")
     company_id = fields.Many2one("res.company", string="Partner company", required=True)
 
     bank_name = fields.Char(required=True)
@@ -194,8 +205,7 @@ class ebics_config(models.Model):
 class ebics_log(models.Model):
     _name = 'l10n_fr_ebics.ebics_log'
     name = fields.Char()
-    ebics_config_id = fields.Many2one('l10n_fr_ebics.ebics_config')
-    date = fields.Datetime()
-    content = fields.Text()
+    ebics_config_id = fields.Many2one('l10n_fr_ebics.ebics_config', "EBICS Configuration", required=True)
+    content = fields.Text(required=True)
 
 # vim:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
