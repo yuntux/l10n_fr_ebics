@@ -105,7 +105,6 @@
 							<field name="ebics_log_ids"/>
 						</page>
 					</notebook>
-					<field name="id"/>
                 </form>
             </field>
         </record>
