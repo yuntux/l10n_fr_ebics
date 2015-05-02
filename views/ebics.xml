@@ -56,13 +56,6 @@
 								<field name="user_id"/>
 							</group>
 						</page>
-						<page string="CA">
-							<group string="CA keys">
-								<field name="ca_key_pem"/>
-								<field name="ca_cert_crt"/>
-								<field name="ca_serial_srl"/>
-							</group>
-						</page>
 						<page string="Bank keys">
 							<group string="Bank auth key">
 								<field name="bank_auth_key_certificate"/>

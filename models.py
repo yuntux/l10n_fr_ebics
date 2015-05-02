@@ -11,7 +11,7 @@ class ebics_config(models.Model):
     ################# LOGGER API STUB #################
     ###################################################
     def logMessage(self, title, string):
-        print title, string
+        print title, string[:1500]
         self.env['l10n_fr_ebics.ebics_log'].create({'name':title, 'content':string, 'ebics_config_id':self.id})
 
     ###################################################
@@ -75,10 +75,8 @@ class ebics_config(models.Model):
         res = self.read([targetField])[0][targetField]
         return long(res)
 
-    def saveCertificate(self, certificateType, partnerName, content, cert_req):
+    def saveCertificate(self, certificateType, partnerName, content):
         self.write({"partner_"+certificateType+"_key_certificate" : content})
-        #TODO : is it really usefull to keep the certification request .csr ?
-        #self.write({"partner_"+certificateType+"_key_certificate_CASignRequest" : cert_req})
 
     def loadCertificate(self, certificateType, partnerName):
         # TODO : check if the return value is correct, text field may no be splited in lines
@@ -90,10 +88,6 @@ class ebics_config(models.Model):
         certificate = str(certificate).replace('-----BEGINCERTIFICATE-----', '').replace('-----ENDCERTIFICATE-----', '')
         return certificate
                    
-    def saveCA(self, owner, ca_key, ca_cert, ca_serial):
-        #TODO : was is cert (4th argument ?)
-        #In the final version, the three partner keys (expet sign for TS profils) will be sign with the save CA
-        self.write({"ca_key_pem" : ca_key, "ca_cert_crt": ca_cert, "ca_serial_srl" : ca_serial})
 
     ###################################################
     ############### ODOO OBJECT FUNCTIONS #############
@@ -110,7 +104,7 @@ class ebics_config(models.Model):
     @api.one
     def send_file(self):
         partner,bank = self.init_connexion()
-        #fileUpload_from_fileSystem(partner, bank, "/home/yuntux/HelloWorld","pain.xxx.cfonb160.dct", "t")  
+        fileUpload_from_fileSystem(partner, bank, "/home/yuntux/helloWorld.mp3","pain.xxx.cfonb160.dct", "fileName", True)  
 
     @api.one
     def get_file(self):
@@ -195,10 +189,6 @@ class ebics_config(models.Model):
     partner_sign_key_public_exponent = fields.Text()
     partner_sign_key_private_exponent = fields.Text()
     partner_sign_key_version = fields.Char()
-
-    ca_key_pem = fields.Text()
-    ca_cert_crt = fields.Text()
-    ca_serial_srl = fields.Text()
 
     ini_letter_sign = fields.Binary()
     hia_letter_encrypt = fields.Binary()
