@@ -17,9 +17,12 @@ class ebics_config(models.Model):
     ###################################################
     ################# STORAGE API STUB ################
     ###################################################
-    def getStatus(self, partnerName, bankName):
+    def getStatus(self):
         res = self.read(["status"])[0]["status"]
         return res
+
+    def setStatus(self, status):
+        self.write({'status' : status})
 
     def getBankAuthKeyHash(self):
         return str(self.bank_auth_key_certificate_hash)
@@ -27,33 +30,33 @@ class ebics_config(models.Model):
     def getBankEncryptKeyHash(self):
         return str(self.bank_encrypt_key_certificate_hash)
 
-    def saveLetter(self, letter, letterType, partnerName, bankName):
+    def saveLetter(self, letter, letterType):
         self.write({letterType : letter.encode('base64')})
 
-    def saveBankKey(self, keyType, keyVersion, owner, modulus, public_exponent, certificate) :
+    def saveBankKey(self, keyType, keyVersion, modulus, public_exponent, certificate) :
         self.write({'bank_'+keyType+'_key_certificate': certificate,
                     'bank_'+keyType+'_key_modulus': str(long(binascii.hexlify(modulus), 16)),
                     'bank_'+keyType+'_key_public_exponent': str(int(public_exponent, 16)),
                     'bank_'+keyType+'_key_version': keyVersion})
 
-    def savePartnerKey(self, keyType, keyVersion, owner, modulus, private_exponent, public_exponent, certificate) :
+    def savePartnerKey(self, keyType, keyVersion, modulus, private_exponent, public_exponent, certificate) :
         self.write({"partner_"+keyType+"_key_certificate" : certificate,
 					'partner_'+keyType+'_key_modulus': str(modulus),
                     'partner_'+keyType+'_key_public_exponent': str(public_exponent),
                     'partner_'+keyType+'_key_private_exponent': str(private_exponent),
                     'partner_'+keyType+'_key_version': keyVersion})
     
-    def getPartnerKeyComponent(self, partnerName, keyComponent, keyType):
+    def getPartnerKeyComponent(self, keyComponent, keyType):
         targetField = 'partner_'+keyType+'_key_'+keyComponent
         res = self.read([targetField])[0][targetField]
         return long(res)
 
-    def getBankKeyComponent(self, bankName, keyComponent, keyType):
+    def getBankKeyComponent(self, keyComponent, keyType):
         targetField = 'bank_'+keyType+'_key_'+keyComponent
         res = self.read([targetField])[0][targetField]
         return long(res)
 
-    def loadCertificate(self, certificateType, partnerName):
+    def getPartnerCertificate(self, certificateType):
         targetField = 'partner_'+certificateType+'_key_certificate'
         return str(self.read([targetField])[0][targetField])
 
@@ -98,7 +101,7 @@ class ebics_config(models.Model):
         partner.handle_hia_exchange(bank)
         print "========== HIA MESSAGE SENT =========="
         print "===>>> YOU HAVE TO SEND INITIATION LETTERS TO YOUR BANK BEFORE DOWNLOADING THE BANK KEYS"
-        self.status = "bank_init"
+        self.setStatus("bank_init")
 
     @api.one
     def get_bank_keys(self):
@@ -108,7 +111,7 @@ class ebics_config(models.Model):
         bank_auth_key_hash = partner.storageService.getBankAuthKeyHash()
         bank_encrypt_key_hash = partner.storageService.getBankEncryptKeyHash()
         hpb_exchange(partner, bank, bank_auth_key_hash, bank_encrypt_key_hash)
-        self.status = "ready"
+        self.setStatus("ready")
 
     _name = 'l10n_fr_ebics.ebics_config'
     name = fields.Char()
